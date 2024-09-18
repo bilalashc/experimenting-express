@@ -53,6 +53,7 @@ router.delete('/:id', (request, response) => {
 
 router.put('/:id', (request, response) => {
     const noteId = parseInt(request.params.id)
+    const {title, body, content} = request.body
 
     const noteExists = notes.some(note => note.id === noteId)
 
@@ -61,9 +62,20 @@ router.put('/:id', (request, response) => {
     }
 
     const updateNote = notes.find(note => note.id === noteId)
+    if (title){
+        updateNote.title = title
+    }
 
+    if (body){
+        updateNote.subject = subject
+    }
+    if (content){
+        updateNote.content = content
+    }
 
-    
+    console.log("updated note", updateNote)
+    response.status(200).json(updateNote)
+
 })
 
 export default router;
