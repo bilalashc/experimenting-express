@@ -66,7 +66,7 @@ router.put('/:id', (request, response) => {
         updateNote.title = title
     }
 
-    if (body){
+    if (subject){
         updateNote.subject = subject
     }
     if (content){

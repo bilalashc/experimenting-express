@@ -12,6 +12,12 @@ const PORT = process.env.PORT
 //Middleware to parse JSON body 
 app.use(bodyParser.json())
 
+//Error handling for Middleware
+app.use((error, request, response, next) => {
+    console.error(error.stack);
+    response.status(500).json({message:"An unexpected error occured"})
+})
+
 //All note routes 
 app.use('/notes', notesRouter)
 
@@ -25,3 +31,4 @@ app.get('/', (request, response) => {
 app.listen(PORT, () => {
     console.log(`Server is running on ${PORT}`)
 })
+
