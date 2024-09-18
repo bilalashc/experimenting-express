@@ -35,7 +35,34 @@ router.post('/', (request, response) => {
 
 })
 
-router.delete(':id', (request, response) => {
+router.delete('/:id', (request, response) => {
+    const noteId = parseInt(request.params.id)
+
+    const noteExists = notes.some(note => note.id === noteId)
+    if (!noteExists){
+        return response.status(404).json({message: "Error - Note not Found"})
+    }
+
+    const deletedNote = notes.find(note => note.id === noteId)
+    notes = notes.filter(note => note.id !== noteId)
+
+    console.log("testing deleted note", deletedNote)
+    response.status(200).json(deletedNote)
+
+})
+
+router.put('/:id', (request, response) => {
+    const noteId = parseInt(request.params.id)
+
+    const noteExists = notes.some(note => note.id === noteId)
+
+    if (!noteExists){
+        return response.status(404).json({message:"Error Finding Note"})
+    }
+
+    const updateNote = notes.find(note => note.id === noteId)
+
+
     
 })
 
