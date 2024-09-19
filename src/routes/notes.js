@@ -10,7 +10,6 @@ let notes = [
 
 
 router.get('/', (request, response) => {
-    // console.log(notes)
     response.json(notes)
 })
 
@@ -53,7 +52,7 @@ router.delete('/:id', (request, response) => {
 
 router.put('/:id', (request, response) => {
     const noteId = parseInt(request.params.id)
-    const {title, body, content} = request.body
+    const {title, subject, content} = request.body
 
     const noteExists = notes.some(note => note.id === noteId)
 
