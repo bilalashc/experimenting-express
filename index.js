@@ -5,6 +5,8 @@ import notesRouter from './src/routes/notes.js'
 import session from 'express-session'
 import redis from 'redis'
 import RedisStore from 'connect-redis'
+import usersRouter from './src/routes/users.js'
+import auth from './src/middleware/auth.js'
 
 
 const app = express()
@@ -32,8 +34,11 @@ app.use(session({
 //Middleware to parse JSON body 
 app.use(bodyParser.json())
 
-//All note routes 
-app.use('/notes', notesRouter)
+//notes routes 
+app.use('/notes', auth, notesRouter)
+
+//users routes
+app.use('/users', usersRouter)
 
 //Standard Route for Server
 app.get('/', (request, response) => {
