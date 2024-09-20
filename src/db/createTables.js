@@ -2,7 +2,11 @@ import { CreateTableCommand, DynamoDBClient } from '@aws-sdk/client-dynamodb';
 
 const dynamodbClient = new DynamoDBClient({
     region: "local",
-    endpoint: "http://localhost:8000"
+    endpoint: "http://localhost:8000",
+    credentials:{
+        accessKeyId: "access_key_id",
+        secretAccessKey: "secret_access_key"
+    }
 });
 
 const notesTableParams = {
@@ -33,16 +37,47 @@ const notesTableParams = {
     },
 }
 
-const createTable = async () => {
+const createNotesTable = async () => {
     try {
         const command = new CreateTableCommand(notesTableParams)
         const response = await dynamodbClient.send(command)
+        console.log("Notes Table Created Successfully", response)
     } catch (error){
         console.error("Error Creating New Notes Table", error)
     }
 }
-createTable();
+createNotesTable();
 
+const usersTableParams = {
+    TableName: "Users",
+    AttributeDefinitions: [
+      {
+        AttributeName: "username",
+        AttributeType: "S",
+      },
+    ],
+    KeySchema: [
+      {
+        AttributeName: "username",
+        KeyType: "HASH",
+      },
+    ],
+    ProvisionedThroughput: {
+      ReadCapacityUnits: 5,
+      WriteCapacityUnits: 5,
+    },
+}
+
+const createUsersTable = async () => {
+    try {
+        const command = new CreateTableCommand(usersTableParams)
+        const response = await dynamodbClient.send(command)
+        console.log("Users Table Created Successfully", response)
+    } catch (error){
+        console.error("Error Creating Users Table", error)
+    }
+}
+createUsersTable()
 
 
 
