@@ -1,21 +1,23 @@
 import dotenv from 'dotenv'
 import express from 'express'
-import bodyParser from 'body-parser'
+// import bodyParser from 'body-parser'
 import notesRouter from './src/routes/notes.js'
 import session from 'express-session'
 import redis from 'redis'
 import RedisStore from 'connect-redis'
 import usersRouter from './src/routes/users.js'
 import auth from './src/middleware/auth.js'
+import AWS from 'aws-sdk'
 
 
 const app = express()
 dotenv.config()
 
 const PORT = process.env.PORT
+
+//Setting up Redis
 const redisClient = redis.createClient();
 redisClient.connect().catch(console.error)
-
 const store = new RedisStore({ client: redisClient})
 
 app.use(session({
@@ -31,8 +33,11 @@ app.use(session({
 }))
 
 
+const dynamoDB = new AWS.dynamoDB();
+
+
 //Middleware to parse JSON body 
-app.use(bodyParser.json())
+app.use(express.json())
 
 //notes routes 
 app.use('/notes', auth, notesRouter)
@@ -56,4 +61,6 @@ app.use((error, request, response, next) => {
 app.listen(PORT, () => {
     console.log(`Server is running on ${PORT}`)
 })
+
+
 
