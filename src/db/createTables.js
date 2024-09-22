@@ -22,13 +22,13 @@ const notesTableParams = {
       },
     ],
     KeySchema: [
+    {
+        AttributeName: "userId",
+        KeyType: "HASH",
+    },
       {
         AttributeName: "noteId",
         KeyType: "RANGE",
-      },
-      {
-        AttributeName: "userId",
-        KeyType: "HASH",
       },
     ],
     ProvisionedThroughput: {

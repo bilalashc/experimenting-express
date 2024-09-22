@@ -7,7 +7,6 @@ import redis from 'redis'
 import RedisStore from 'connect-redis'
 import usersRouter from './src/routes/users.js'
 import auth from './src/middleware/auth.js'
-import AWS from 'aws-sdk'
 
 
 const app = express()
@@ -33,13 +32,11 @@ app.use(session({
 }))
 
 
-const dynamoDB = new AWS.dynamoDB();
-
 
 //Middleware to parse JSON body 
 app.use(express.json())
 
-//notes routes 
+//notes routes with authentication middleware
 app.use('/notes', auth, notesRouter)
 
 //users routes
