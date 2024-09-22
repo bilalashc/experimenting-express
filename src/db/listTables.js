@@ -1,4 +1,4 @@
-import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
+import { DynamoDBClient, ListTablesCommand } from "@aws-sdk/client-dynamodb";
 
 const dynamodbClient = new DynamoDBClient({
     region: "local",
@@ -9,3 +9,14 @@ const dynamodbClient = new DynamoDBClient({
     }
 })
 
+const listTables = async () => {
+    try {
+        const command = new ListTablesCommand({})
+        const response = await dynamodbClient.send(command)
+        console.log("list all table", response)
+    } catch (error){
+        console.error("error listing tables", error)
+    }
+}
+
+listTables();
