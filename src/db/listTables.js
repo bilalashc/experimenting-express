@@ -9,6 +9,8 @@ const dynamodbClient = new DynamoDBClient({
     }
 })
 
+
+//TODO: List Tables with Pagination
 const listTables = async () => {
     try {
         const command = new ListTablesCommand({})
