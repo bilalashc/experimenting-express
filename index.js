@@ -31,8 +31,6 @@ app.use(session({
     }
 }))
 
-
-
 //Middleware to parse JSON body 
 app.use(express.json())
 
