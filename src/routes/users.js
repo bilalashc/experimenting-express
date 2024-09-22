@@ -1,7 +1,8 @@
 import express from 'express'
 import bcrypt from 'bcrypt'
-import { DynamoDBClient, GetItemCommand, PutItemCommand } from '@aws-sdk/client-dynamodb'
+import { DynamoDBClient } from '@aws-sdk/client-dynamodb'
 import { DynamoDBDocumentClient } from '@aws-sdk/lib-dynamodb'
+import { PutCommand, GetCommand } from '@aws-sdk/lib-dynamodb'
 
 const router = express.Router()
 
@@ -31,11 +32,11 @@ router.post('/register', async (request, response) => {
             TableName: "Users"
         }
 
-        const getUserCommand = new GetItemCommand(getUserParams)
+        const getUserCommand = new GetCommand(getUserParams)
         const getUserResponse = await ddbDocClient.send(getUserCommand)
 
         if (getUserResponse.Item) {
-            return response.status(201).json({message: "Username already exists"})
+            return response.status(409).json({message: "Username already exists"})
         }
 
         const hashedPassword = await bcrypt.hash(password, 10);
@@ -44,7 +45,7 @@ router.post('/register', async (request, response) => {
             Item: {"username" : username, "password" : hashedPassword},
             TableName: "Users"
         }
-        const putUserCommand = new PutItemCommand(putUserParams)
+        const putUserCommand = new PutCommand(putUserParams)
         await ddbDocClient.send(putUserCommand)
 
         return response.status(201).json({message: "New user created successfully"})
@@ -63,23 +64,24 @@ router.post('/login', async (request, response) => {
             Key: {username: username},
             TableName: "Users"
         }
-        const getUserCommand = new GetItemCommand(getUserParams)
+        const getUserCommand = new GetCommand(getUserParams)
         const getUserResponse = await ddbDocClient.send(getUserCommand)
 
-        if (getUserResponse.Item.username !== username){
-            return response(400).json({message: "Invalid Credentials"})
+        if (!getUserResponse.Item || getUserResponse.Item.username !== username){
+            return response.status(400).json({message: "Invalid Credentials"})
         }
 
-        const passwordCompare = await brcrypt.compare(password, getUserResponse.Item.password)
+        const passwordCompare = await bcrypt.compare(password, getUserResponse.Item.password)
 
         if (!passwordCompare){
-            return response(400).json({message: "Invalid Credentials"})
+            return response.status(400).json({message: "Invalid Credentials"})
         }
-
+        
         request.session.user = {username}
-        return response(201).json({message: "User logged in successfully"})
+        return response.status(201).json({message: "User logged in successfully"})
     } catch (error){
         console.error("user unable to login, unexepcted error", error)
+        return response.status(500).json({message: "Error logging in"})
     }
 
 })
