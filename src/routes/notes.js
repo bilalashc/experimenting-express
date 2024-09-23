@@ -1,5 +1,5 @@
-import { DynamoDBClient } from '@aws-sdk/client-dynamodb'
-import { DynamoDBDocumentClient, PutCommand, QueryCommand } from '@aws-sdk/lib-dynamodb'
+import { DynamoDBClient, ReturnValue } from '@aws-sdk/client-dynamodb'
+import { DeleteCommand, DynamoDBDocumentClient, PutCommand, QueryCommand, UpdateCommand } from '@aws-sdk/lib-dynamodb'
 import express from 'express'
 import { v4 as uuidv4 } from 'uuid';
 
@@ -73,47 +73,80 @@ router.post('/', async (request, response) => {
     
 })
 
-router.delete('/:id', (request, response) => {
-    const noteId = parseInt(request.params.id)
+router.delete('/:id', async (request, response) => {
+    const noteId = request.params.id
+    const userId = request.session.user.username
 
-    const noteExists = notes.some(note => note.id === noteId)
-    if (!noteExists){
-        return response.status(404).json({message: "Error - Note not Found"})
+    try {
+        const deleteNoteParams = {
+            TableName: "Notes",
+            Key: {
+                userId: userId,
+                noteId: noteId,
+            }
+        }
+
+        const deleteCommand = new DeleteCommand(deleteNoteParams)
+        await ddbDocClient.send(deleteCommand)
+        console.log("note has been deleted", deleteNoteParams)
+        return response.status(200).json({message: "note has been deleted successfully"})
+    } catch (error){
+        console.error("error delete note", error)
+        return response.status(500).json({message: "error deleting note"})
     }
-
-    const deletedNote = notes.find(note => note.id === noteId)
-    notes = notes.filter(note => note.id !== noteId)
-
-    console.log("testing deleted note", deletedNote)
-    response.status(200).json(deletedNote)
-
 })
 
-router.put('/:id', (request, response) => {
-    const noteId = parseInt(request.params.id)
+router.put('/:id', async (request, response) => {
+    const noteId = request.params.id
+    const userId = request.session.user.username
     const {title, subject, content} = request.body
 
-    const noteExists = notes.some(note => note.id === noteId)
+    const updateExpression = []
+    const expressionAttributeNames = {}
+    const expressionAttributeValues = {}
 
-    if (!noteExists){
-        return response.status(404).json({message:"Error Finding Note"})
-    }
-
-    const updateNote = notes.find(note => note.id === noteId)
     if (title){
-        updateNote.title = title
+        updateExpression.push("#T = :t");
+        expressionAttributeNames["#T"] = "title";
+        expressionAttributeValues[":t"] = title;
     }
 
     if (subject){
-        updateNote.subject = subject
+        updateExpression.push("#ST = :st");
+        expressionAttributeNames["#ST"] = "subject";
+        expressionAttributeValues[":st"] = subject;
     }
+
     if (content){
-        updateNote.content = content
+        updateExpression.push("#C = :c")
+        expressionAttributeNames["#C"] = "content";
+        expressionAttributeValues[":c"] = content
     }
 
-    console.log("updated note", updateNote)
-    response.status(200).json(updateNote)
-
+    if (updateExpression.length === 0){
+        return response.status(500).json({message: "invalid fields provided for update"})
+    }
+    
+    try {
+        const updateNoteParams = {
+            TableName: "Notes",
+            Key: {
+                userId: userId,
+                noteId: noteId,
+            },
+            ExpressionAttributeNames: expressionAttributeNames,
+            ExpressionAttributeValues: expressionAttributeValues,
+            UpdateExpression: "SET " + updateExpression.join(", "),
+            ReturnValues: "ALL_NEW"
+        }
+        const updateNoteCommand = new UpdateCommand(updateNoteParams)
+        const updateNoteResponse = await ddbDocClient.send(updateNoteCommand)
+        console.log(updateNoteResponse, "note updated successfully")
+        return response.status(200).json(updateNoteResponse)
+    } catch (error){
+        console.error("error updating note", error)
+        return response.status(400).json({message: "error updating note"})
+    }
 })
 
 export default router;
