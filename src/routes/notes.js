@@ -1,37 +1,76 @@
+import { DynamoDBClient } from '@aws-sdk/client-dynamodb'
+import { DynamoDBDocumentClient, PutCommand, QueryCommand } from '@aws-sdk/lib-dynamodb'
 import express from 'express'
+import { v4 as uuidv4 } from 'uuid';
 
 
 const router = express.Router()
 
-let notes = [
-    {id: 1, title: 'Canada', subject: 'The Great White North', content: 'The quick brown fox jumped over the lazy dog'},
-    {id: 2, title: 'USA', subject: 'Party in the USA', content: 'This is the greatest party in the world'}
-]
-
-
-router.get('/', (request, response) => {
-    response.json(notes)
+const dynamodb = new DynamoDBClient({
+    region: "local",
+    endpoint: "http://localhost:8000",
+    credentials: {
+        accessKeyId: "access_key",
+        secretAccessKey: "secret_access_key",
+    }
 })
 
-router.post('/', (request, response) => {
+const ddbDocClient = DynamoDBDocumentClient.from(dynamodb)
+
+router.get('/', async (request, response) => {
+    const userId = request.session.user.username
+    console.log(userId, "testing user id")
+
+    try {
+        const queryParams = {
+            TableName: "Notes",
+            ExpressionAttributeValues: {
+                ":uid": userId
+            },
+            KeyConditionExpression: "userId = :uid"
+        }
+
+        const queryCommand = new QueryCommand(queryParams)
+        const queryResponse = await ddbDocClient.send(queryCommand)
+
+        console.log("successfully retrieved note results by user",queryResponse.Items)
+        return response.json(queryResponse.Items)
+    } catch (error){
+        console.error("unable to retrieve notes for current user", error)
+        return response.status(500).json({message: "Unable to retrieve notes"})
+    }
+})
+
+router.post('/', async (request, response) => {
     const {title, subject, content} = request.body
+    const userId = request.session.user.username
 
     if (!title || !subject || !content){
         return response.status(400).json({message: "Missing Required Fields"})
     }
 
-    const newNote = {
-        id: notes.length + 1,
-        title,
-        subject,
-        content
+    try {
+        const noteId = uuidv4();
+    
+        const putNoteParams ={
+            TableName: "Notes",
+            Item: {
+                userId: userId,
+                noteId: noteId,
+                title: title,
+                subject: subject,
+                content: content,
+            }
+        }
+    
+        const putNoteCommand = new PutCommand(putNoteParams)
+        const putNoteResponse = await ddbDocClient.send(putNoteCommand)
+        return response.status(201).json(putNoteParams.Item)
+    } catch (error){
+        console.error("error creating new note", error)
+        return response.status(500).json({message: "error creating new note"})
     }
-
-    notes.push(newNote)
-    console.log(newNote, "testing new note")
-
-    response.status(201).json(newNote)
-
+    
 })
 
 router.delete('/:id', (request, response) => {
