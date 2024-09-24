@@ -12,10 +12,19 @@ const dynamodbClient = new DynamoDBClient({
 
 //TODO: List Tables with Pagination
 const listTables = async () => {
+    let lastEvaluatedTableName = null
+
     try {
-        const command = new ListTablesCommand({})
-        const response = await dynamodbClient.send(command)
-        console.log("list all table", response)
+            do {
+                const command = new ListTablesCommand({
+                    Limit: 1,
+                    ExclusiveStartTableName: lastEvaluatedTableName
+                })
+                const response = await dynamodbClient.send(command)
+                lastEvaluatedTableName = response.LastEvaluatedTableName
+                console.log("list all table", response)
+            } while (lastEvaluatedTableName)
+
     } catch (error){
         console.error("error listing tables", error)
     }
