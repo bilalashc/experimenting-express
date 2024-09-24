@@ -2,6 +2,7 @@ import { DynamoDBClient, ReturnValue } from '@aws-sdk/client-dynamodb'
 import { DeleteCommand, DynamoDBDocumentClient, PutCommand, QueryCommand, UpdateCommand } from '@aws-sdk/lib-dynamodb'
 import express from 'express'
 import { v4 as uuidv4 } from 'uuid';
+import redisClient from '../redisClient.js';
 
 
 const router = express.Router()
@@ -22,6 +23,15 @@ router.get('/', async (request, response) => {
     console.log(userId, "testing user id")
 
     try {
+        //Check if data is in redis cache
+        const cacheKey = `notes:${userId}`
+        const cacheData = await redisClient.get(cacheKey)
+
+        if (cacheData){
+            console.log(cacheData, "serving data from redis cache")
+            return response.status(200).json(JSON.parse(cacheData))
+        }
+
         const queryParams = {
             TableName: "Notes",
             ExpressionAttributeValues: {
@@ -32,8 +42,13 @@ router.get('/', async (request, response) => {
 
         const queryCommand = new QueryCommand(queryParams)
         const queryResponse = await ddbDocClient.send(queryCommand)
-
         console.log("successfully retrieved note results by user",queryResponse.Items)
+
+        //Set Data in Redis Cache
+        await redisClient.set(cacheKey, JSON.stringify(queryResponse.Items), { 
+            EX: 3600 //1 hour expiration
+        })
+
         return response.json(queryResponse.Items)
     } catch (error){
         console.error("unable to retrieve notes for current user", error)
@@ -65,6 +80,10 @@ router.post('/', async (request, response) => {
     
         const putNoteCommand = new PutCommand(putNoteParams)
         const putNoteResponse = await ddbDocClient.send(putNoteCommand)
+
+        const cacheKey = `notes:${userId}`
+        await redisClient.del(cacheKey)
+
         return response.status(201).json(putNoteParams.Item)
     } catch (error){
         console.error("error creating new note", error)
@@ -89,6 +108,9 @@ router.delete('/:id', async (request, response) => {
         const deleteCommand = new DeleteCommand(deleteNoteParams)
         await ddbDocClient.send(deleteCommand)
         console.log("note has been deleted", deleteNoteParams)
+        const cacheKey = `notes:${userId}`
+        await redisClient.del(cacheKey)
+
         return response.status(200).json({message: "note has been deleted successfully"})
     } catch (error){
         console.error("error delete note", error)
@@ -141,6 +163,10 @@ router.put('/:id', async (request, response) => {
         }
         const updateNoteCommand = new UpdateCommand(updateNoteParams)
         const updateNoteResponse = await ddbDocClient.send(updateNoteCommand)
+
+        const cacheKey = `notes:${userId}`
+        await redisClient.del(cacheKey)
+
         console.log(updateNoteResponse, "note updated successfully")
         return response.status(200).json(updateNoteResponse)
     } catch (error){

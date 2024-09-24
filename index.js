@@ -3,10 +3,11 @@ import express from 'express'
 // import bodyParser from 'body-parser'
 import notesRouter from './src/routes/notes.js'
 import session from 'express-session'
-import redis from 'redis'
 import RedisStore from 'connect-redis'
 import usersRouter from './src/routes/users.js'
 import auth from './src/middleware/auth.js'
+// import redisClient from './src/redisClient.js'
+import redisClient from './src/redisClient.js'
 
 
 const app = express()
@@ -14,9 +15,10 @@ dotenv.config()
 
 const PORT = process.env.PORT
 
-//Setting up Redis
-const redisClient = redis.createClient();
-redisClient.connect().catch(console.error)
+// //Setting up Redis
+// const redisClient = redis.createClient();
+// redisClient.connect().catch(console.error)
+
 const store = new RedisStore({ client: redisClient})
 
 app.use(session({
