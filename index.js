@@ -47,7 +47,6 @@ app.get('/', (request, response) => {
     response.json("Welcome to a Full Stack Experimental Application")
 })
 
-
 //Error handling for Middleware
 app.use((error, request, response, next) => {
     console.error(error.stack)
